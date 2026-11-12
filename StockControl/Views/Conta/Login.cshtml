@@ -1,0 +1,53 @@
+@model StockControl.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Entrar";
+    Layout = "_LayoutLogin";
+}
+
+@if (TempData["Sucesso"] is string sucesso)
+{
+    <div class="alerta alerta-sucesso" role="status">@sucesso</div>
+}
+
+<h1>Entrar</h1>
+<p class="login-subtitulo">Acesse com o seu e-mail e senha.</p>
+
+<form method="post" asp-action="Login" novalidate>
+    @* Erros gerais (ex.: senha errada) *@
+    <div asp-validation-summary="ModelOnly" class="alerta alerta-erro" role="alert"></div>
+
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div class="campo">
+        <label asp-for="Email"></label>
+        <div class="campo-com-icone">
+            <span class="campo-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+            </span>
+            <input asp-for="Email" type="email" autocomplete="username" placeholder="seu.email@exemplo.com" autofocus />
+        </div>
+        <span asp-validation-for="Email" class="erro-campo"></span>
+    </div>
+
+    <div class="campo">
+        <label for="Senha">Senha</label>
+        <partial name="_CampoSenha" model='("Senha", "Senha", "Sua senha", "current-password")' />
+        <span asp-validation-for="Senha" class="erro-campo"></span>
+    </div>
+
+    <div class="campo campo-checkbox">
+        <input asp-for="LembrarDeMim" />
+        <label asp-for="LembrarDeMim"></label>
+    </div>
+
+    <button type="submit" class="botao botao-grande" data-texto-enviando="Entrando…">Entrar</button>
+</form>
+
+<p class="login-ajuda">
+    Funcionário sem acesso ou esqueceu a senha? Fale com o administrador do seu estabelecimento.
+</p>
+
+<div class="login-cadastro">
+    <span>Ainda não usa o StockControl no seu mercadinho?</span>
+    <a class="botao botao-secundario botao-largo" asp-action="Cadastrar">Cadastrar meu estabelecimento</a>
+</div>

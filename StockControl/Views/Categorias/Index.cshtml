@@ -1,0 +1,60 @@
+@model List<Categoria>
+@using StockControl.Extensions
+@{
+    ViewData["Title"] = "Categorias";
+}
+
+<div class="barra-titulo">
+    <div>
+        <h1>Categorias</h1>
+        <p class="subtitulo">Grupos usados para organizar os produtos.</p>
+    </div>
+    <div class="acoes">
+        <a class="botao" asp-action="Criar">@Icones.Svg("mais") Nova categoria</a>
+    </div>
+</div>
+
+<div class="cartao">
+    @if (Model.Count == 0)
+    {
+        <div class="vazio">
+            @Icones.Svg("categorias")
+            <p>Nenhuma categoria cadastrada.</p>
+        </div>
+    }
+    else
+    {
+        <div class="tabela-container">
+            <table>
+                <caption>@Model.Count categoria(s)</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Nome</th>
+                        <th scope="col">Descrição</th>
+                        <th scope="col"><span class="somente-leitor">Ações</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td><strong>@c.Nome</strong></td>
+                            <td><span class="dica">@c.Descricao</span></td>
+                            <td>
+                                <div class="acoes">
+                                    @* aria-label diz ao leitor de tela QUAL item será editado *@
+                                    <a class="botao botao-texto botao-pequeno" asp-action="Editar" asp-route-id="@c.Id"
+                                       aria-label="Editar @c.Nome">@Icones.Svg("editar") Editar</a>
+                                    <a class="botao botao-texto perigo botao-pequeno" asp-action="Excluir" asp-route-id="@c.Id"
+                                       data-confirmar-titulo="Excluir categoria?"
+                                       data-confirmar="A categoria “@c.Nome” será excluída. Essa ação não pode ser desfeita. Categorias com produtos não podem ser excluídas."
+                                       aria-label="Excluir @c.Nome">@Icones.Svg("excluir") Excluir</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

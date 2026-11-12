@@ -1,0 +1,170 @@
+@using StockControl.Extensions
+@{
+    // Descobre em qual controller estamos, para destacar o item do menu.
+    var controllerAtual = ViewContext.RouteData.Values["controller"]?.ToString();
+    string? Atual(string controller) => controllerAtual == controller ? "page" : null;
+
+    var podeGerenciar = User.IsInRole("Admin") || User.IsInRole("Gerente");
+    var ehAdmin = User.IsInRole("Admin");
+
+    var nomeUsuario = User.Identity?.Name ?? "";
+    var perfil = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+    var estabelecimento = User.FindFirst(ClaimsStockControl.Estabelecimento)?.Value ?? "";
+
+    // Iniciais para o "avatar" (ex.: "Gabriela Gerente" -> "GG")
+    var iniciais = string.Concat(nomeUsuario.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2).Select(p => char.ToUpper(p[0])));
+
+    // Data por extenso: "Terça-feira, 28 de outubro"
+    var hoje = DateTime.Today.ToString("dddd, d 'de' MMMM");
+    hoje = hoje.Length > 0 ? char.ToUpper(hoje[0]) + hoje[1..] : hoje;
+}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - StockControl</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
+    <meta name="theme-color" content="#0b1f4d" />
+    @* Aplica o tema ANTES de desenhar a página (evita "piscar" claro e depois escuro).
+       Ordem: escolha salva pelo usuário; se não houver, a preferência do sistema operacional. *@
+    <script>
+        (function () {
+            var tema = null;
+            try { tema = localStorage.getItem("stockcontrol-tema"); } catch (e) { }
+            if (tema !== "escuro" && tema !== "claro")
+                tema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
+            document.documentElement.setAttribute("data-tema", tema);
+        })();
+    </script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="app">
+    @* Acessibilidade: permite pular o menu e ir direto ao conteúdo com o teclado *@
+    <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+    <div class="app-shell">
+        @* ================= Menu lateral ================= *@
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-topo">
+                <a class="logo" asp-controller="Home" asp-action="Index"><partial name="_Logo" /></a>
+                <button type="button" class="botao-icone sidebar-fechar" id="botao-fechar-menu" aria-label="Fechar menu">
+                    @Icones.Svg("fechar")
+                </button>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Menu principal">
+                <p class="menu-grupo" id="grupo-operacao">Operação</p>
+                <ul class="menu" aria-labelledby="grupo-operacao">
+                    <li><a asp-controller="Home" asp-action="Index" aria-current="@Atual("Home")">@Icones.Svg("dashboard") <span>Dashboard</span></a></li>
+                    <li><a asp-controller="Vendas" asp-action="Index" aria-current="@Atual("Vendas")">@Icones.Svg("carrinho") <span>Vendas</span></a></li>
+                    <li><a asp-controller="Movimentacoes" asp-action="Index" aria-current="@Atual("Movimentacoes")">@Icones.Svg("movimentacoes") <span>Movimentações</span></a></li>
+                    <li><a asp-controller="Produtos" asp-action="Index" aria-current="@Atual("Produtos")">@Icones.Svg("produtos") <span>Produtos</span></a></li>
+                </ul>
+
+                @if (podeGerenciar)
+                {
+                    <p class="menu-grupo" id="grupo-cadastros">Cadastros</p>
+                    <ul class="menu" aria-labelledby="grupo-cadastros">
+                        <li><a asp-controller="Categorias" asp-action="Index" aria-current="@Atual("Categorias")">@Icones.Svg("categorias") <span>Categorias</span></a></li>
+                        <li><a asp-controller="Fornecedores" asp-action="Index" aria-current="@Atual("Fornecedores")">@Icones.Svg("fornecedores") <span>Fornecedores</span></a></li>
+                    </ul>
+                }
+
+                @if (ehAdmin)
+                {
+                    <p class="menu-grupo" id="grupo-admin">Administração</p>
+                    <ul class="menu" aria-labelledby="grupo-admin">
+                        <li><a asp-controller="Usuarios" asp-action="Index" aria-current="@Atual("Usuarios")">@Icones.Svg("usuarios") <span>Usuários</span></a></li>
+                        <li><a asp-controller="Estabelecimento" asp-action="Index" aria-current="@Atual("Estabelecimento")">@Icones.Svg("estabelecimento") <span>Estabelecimento</span></a></li>
+                        <li><a asp-controller="Auditoria" asp-action="Index" aria-current="@Atual("Auditoria")">@Icones.Svg("historico") <span>Auditoria</span></a></li>
+                    </ul>
+                }
+            </nav>
+
+            <div class="sidebar-rodape">
+                @* Clicar no próprio nome abre "Minha conta" (dados e troca de senha) *@
+                <a class="cartao-usuario" asp-controller="Conta" asp-action="MinhaConta" aria-current="@Atual("Conta")"
+                   title="Minha conta">
+                    <span class="avatar" aria-hidden="true">@iniciais</span>
+                    <span class="cartao-usuario-texto">
+                        <strong>@nomeUsuario</strong>
+                        <span>@perfil · Minha conta</span>
+                    </span>
+                </a>
+                <form method="post" asp-controller="Conta" asp-action="Sair">
+                    <button type="submit" class="botao-sair" data-texto-enviando="Saindo…">@Icones.Svg("sair") <span>Sair</span></button>
+                </form>
+            </div>
+        </aside>
+
+        @* Fundo escuro atrás do menu aberto no celular (clicar fecha o menu) *@
+        <div class="sidebar-fundo" id="sidebar-fundo" hidden></div>
+
+        @* ================= Área principal ================= *@
+        <div class="app-principal">
+            <header class="topbar">
+                <button type="button" class="botao-icone botao-menu" id="botao-menu"
+                        aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">
+                    @Icones.Svg("menu")
+                </button>
+
+                <div class="topbar-estabelecimento">
+                    <span class="topbar-estabelecimento-icone">@Icones.Svg("estabelecimento")</span>
+                    <span>
+                        <span class="somente-leitor">Estabelecimento: </span>
+                        <strong>@estabelecimento</strong>
+                    </span>
+                </div>
+
+                <div class="topbar-acoes">
+                    <span class="topbar-data">@Icones.Svg("calendario") @hoje</span>
+                    @* Botão de alternar (toggle): o nome é fixo ("Modo escuro") e o estado vai em
+                       aria-pressed, assim o leitor de tela anuncia "Modo escuro, botão, pressionado". *@
+                    <button type="button" class="botao-icone botao-tema" id="botao-tema"
+                            aria-label="Modo escuro" aria-pressed="false" title="Alternar modo escuro">
+                        <span class="icone-tema-lua">@Icones.Svg("lua")</span>
+                        <span class="icone-tema-sol">@Icones.Svg("sol")</span>
+                    </button>
+                    <a class="botao botao-pequeno" asp-controller="Movimentacoes" asp-action="Registrar" asp-route-tipo="Saida">
+                        @Icones.Svg("mais") <span>Nova venda</span>
+                    </a>
+                </div>
+            </header>
+
+            <main id="conteudo" class="conteudo" tabindex="-1">
+                <partial name="_Mensagens" />
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    @* ================= Janela de confirmação de exclusão =================
+       Elemento <dialog> nativo do HTML, aberto com showModal():
+       - o foco fica preso dentro da janela e o resto da página fica inerte;
+       - a tecla Esc fecha (cancela);
+       - o foco começa em "Cancelar" (a opção segura) e volta ao botão "Excluir" ao fechar;
+       - aria-labelledby/aria-describedby: o leitor de tela lê o título e a mensagem.
+       Os links "Excluir" levam data-confirmar com a mensagem. Sem JavaScript,
+       eles continuam abrindo a página de confirmação (funciona do mesmo jeito). *@
+    <dialog id="dialogo-confirmacao" class="dialogo" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-mensagem">
+        <form method="post" id="dialogo-form">
+            @Html.AntiForgeryToken()
+            <span class="dialogo-icone" aria-hidden="true">@Icones.Svg("alerta")</span>
+            <h2 id="dialogo-titulo">Confirmar exclusão</h2>
+            <p id="dialogo-mensagem"></p>
+            <div class="acoes dialogo-acoes">
+                <button type="button" class="botao botao-secundario" id="dialogo-cancelar">Cancelar</button>
+                <button type="submit" class="botao botao-perigo" data-texto-enviando="Excluindo…">Sim, excluir</button>
+            </div>
+        </form>
+    </dialog>
+
+    <partial name="_VLibras" />
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/formularios.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
